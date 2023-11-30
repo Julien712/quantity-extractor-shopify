@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extraction quantités shopify</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch;
+            height: 80vh;
+            margin: 0;
+            padding: 20px;
+            background-color: #333;
+        }
+
+        textarea {
+            width: 40%;
+            height: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            background-color: #444;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        #resultat, #copierSection {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: #fff;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+    </style>
+</head>
+
+<body>
+    <textarea id="yamlInput" placeholder="Collez votre YAML ici..."></textarea>
+    <div id="resultat">
+        <button onclick="extraireValeurs()">Extraire</button>
+    </div>
+    <textarea id="output" placeholder="Résultat de l'extraction..." readonly></textarea>
+    <section id="copierSection">
+        <button onclick="copierResultat()">Copier</button>
+    </section>
+
+    <script>
+        function extraireValeurs() {
+            // Récupérer le contenu du textarea YAML
+            var yamlContent = document.getElementById("yamlInput").value;
+
+            // Séparer le contenu en documents YAML
+            var documents = yamlContent.split('\n');
+
+            // Initialiser le résultat
+            var resultat = "";
+
+            // Parcourir chaque document YAML
+            documents.forEach(function (document) {
+                try {
+                    // Charger le document YAML
+                    var contenuYAML = JSON.parse(document);
+
+                    // Extraire la valeur de "initialQuantity"
+                    var initialQuantity = contenuYAML["initialQuantity"];
+
+                    // Ajouter la valeur extraite au résultat
+                    resultat += initialQuantity + "\n";
+                } catch (erreur) {
+                    // Gérer les erreurs de format YAML
+                    resultat += "Erreur de format YAML\n";
+                }
+            });
+
+            // Afficher le résultat dans le textarea de sortie
+            document.getElementById("output").value = resultat;
+        }
+
+        function copierResultat() {
+            // Sélectionner le contenu du textarea de sortie
+            var outputTextarea = document.getElementById("output");
+            outputTextarea.select();
+            outputTextarea.setSelectionRange(0, 99999); // Pour les navigateurs mobiles
+
+            // Copier le contenu dans le presse-papiers
+            document.execCommand("copy");
+
+            // Désélectionner le texte
+            outputTextarea.setSelectionRange(0, 0);
+        }
+
+    </script>
+</body>
+
+</html>
