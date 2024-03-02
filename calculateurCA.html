@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculateur Chiffre d'affaires</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            font-family: 'Arial', sans-serif;
+            height: 100%;
+            margin: 0;
+            padding: 20px;
+            background-color: #333;
+            color: #fff;
+        }
+
+        .datainput {
+            display: flex;
+            justify-content: space-around;
+        }
+
+        textarea {
+            width: 30%;
+            height: 250px;
+            padding: 10px;
+            box-sizing: border-box;
+            background-color: #444;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.1);
+            margin: 0;
+            resize: none;
+        }
+
+        textarea::placeholder {
+            color: #45a049;
+            font-size: 25px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: #fff;
+            padding: 5px;
+            font-size: 25px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .boutons {
+            display: flex;
+            flex-direction: column;
+            margin: 25px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th,
+        td {
+            border: 1px solid white;
+            padding: 8px;
+            text-align: center;
+        }
+
+        .noborder {
+            border: #444 !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="datainput">
+        <textarea id="prices" placeholder="Prix de base..." required></textarea>
+        <textarea id="costs" placeholder="Coût par article..." required></textarea>
+        <textarea id="yamlInput" placeholder="Quantité à disposition..." required></textarea>
+    </div>
+
+    <div class="boutons">
+        <button onclick="extraireValeurs()">Extraire</button>
+        <button id="saveButton" onclick="genererCSV()" style="display: none;">Sauvegarder</button>
+    </div>
+
+    <div>
+        <table>
+            <thead>
+                <tr>
+                    <th class="noborder"></th>
+                    <th class="noborder"></th>
+                    <th class="noborder"></th>
+                    <th><span id="totalBasePrice"></span></th>
+                    <th><span id="totalCost"></span></th>
+                </tr>
+                <tr>
+                    <th>Prix de base</th>
+                    <th>Coût par article</th>
+                    <th>Quantité à disposition</th>
+                    <th>Total Prix de base</th>
+                    <th>Total Coût par article</th>
+                </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+        </table>
+    </div>
+
+    <script>
+        function extraireValeurs() {
+            if (!areInputsFilled()) {
+                alert("Veuillez remplir tous les champs requis !");
+                return;
+            }
+
+            var yamlContent = document.getElementById("yamlInput").value;
+            var documents = yamlContent.split('\n');
+            var quantities = [];
+
+            documents.forEach(function (document) {
+                try {
+                    var contenuYAML = JSON.parse(document);
+                    var initialQuantity = contenuYAML["initialQuantity"];
+                    quantities.push(initialQuantity);
+                } catch (erreur) {
+                    console.error("Erreur de format YAML:", erreur);
+                }
+            });
+
+            calculateTotals(quantities);
+
+            var saveButton = document.getElementById("saveButton");
+            saveButton.style.display = "block";
+        }
+
+        function areInputsFilled() {
+            var prices = document.getElementById("prices").value.trim();
+            var costs = document.getElementById("costs").value.trim();
+            var yamlInput = document.getElementById("yamlInput").value.trim();
+
+            return prices !== "" && costs !== "" && yamlInput !== "";
+        }
+
+        function calculateTotals(quantities) {
+            var prices = document.getElementById("prices").value.split("\n").map(Number);
+            var costs = document.getElementById("costs").value.split("\n").map(function (value) {
+                return value.trim() === "" ? 0 : parseFloat(value);
+            });
+
+            var tableBody = document.getElementById("table-body");
+            tableBody.innerHTML = '';
+
+            var totalBasePrice = 0;
+            var totalCost = 0;
+
+            for (var i = 0; i < prices.length; i++) {
+                var totalPriceBaseItem = prices[i] * quantities[i];
+                var totalCostItem = costs[i] * quantities[i];
+
+                totalBasePrice += totalPriceBaseItem;
+                totalCost += totalCostItem;
+
+                var row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${prices[i]}</td>
+                    <td>${costs[i]}</td>
+                    <td>${quantities[i]}</td>
+                    <td>${totalPriceBaseItem.toFixed(2)} €</td>
+                    <td>${totalCostItem.toFixed(2)} €</td>
+                `;
+                tableBody.appendChild(row);
+            }
+
+            document.getElementById("totalBasePrice").textContent = totalBasePrice.toFixed(2) + " €";
+            document.getElementById("totalCost").textContent = totalCost.toFixed(2) + " €";
+        }
+
+        function genererCSV() {
+            var prices = document.getElementById("prices").value.split("\n").map(parseFloat);
+            var costs = document.getElementById("costs").value.split("\n").map(function (value) {
+                return value.trim() === "" ? 0 : parseFloat(value);
+            });
+            var quantities = Array.from(document.querySelectorAll("#table-body td:nth-child(3)")).map(td => parseFloat(td.textContent));
+
+            var csvContent = "data:text/csv;charset=utf-8,"
+                + "Price,Cost,Quantity,Total Price,Total Cost\n";
+
+            var totalBasePrice = 0;
+            var totalCost = 0;
+
+            for (var i = 0; i < prices.length; i++) {
+                var totalPriceBaseItem = prices[i] * quantities[i];
+                var totalCostItem = costs[i] * quantities[i];
+
+                totalBasePrice += totalPriceBaseItem;
+                totalCost += totalCostItem;
+
+                var priceFormatted = prices[i].toFixed(2).replace(".", ",");
+                var costFormatted = costs[i].toFixed(2).replace(".", ",");
+                var totalPriceFormatted = totalPriceBaseItem.toFixed(2).replace(".", ",");
+                var totalCostFormatted = totalCostItem.toFixed(2).replace(".", ",");
+
+                csvContent += `"${priceFormatted}","${costFormatted}",${quantities[i]},"${totalPriceFormatted}€","${totalCostFormatted}€"\n`;
+            }
+
+            var totalBasePriceFormatted = totalBasePrice.toFixed(2).replace(".", ",");
+            var totalCostFormatted = totalCost.toFixed(2).replace(".", ",");
+            csvContent += `, , ,"${totalBasePriceFormatted}€","${totalCostFormatted}€"\n`;
+
+            var encodedUri = encodeURI(csvContent);
+            var link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "Sauvegarde.csv");
+            document.body.appendChild(link); // Required for Firefox
+            link.click();
+        }
+
+    </script>
+
+</body>
+
+</html>
